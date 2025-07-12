@@ -171,7 +171,7 @@ export const login = async (req, res) => {
         }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
         // set the token in a cookie
-        res.cookie('loginToken', token, {
+        res.cookie('token', token, {
             httpOnly: true, // cookie is not accessible vio JavaScript
             secure: process.env.NODE_ENV !== 'development', // Use secure cookies in production
             sameSite: 'strict', // cookie is sent only for same-site requests
