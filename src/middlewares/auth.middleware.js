@@ -50,6 +50,38 @@ export const authMiddleware = async (req, res,next) =>{
         return res.status(401).json({
             success: false,
             message: 'Unauthorized access. Please log in.'
-        });       
+        });
+    }
+};
+
+export const isAdmin = async (req, res, next) =>{
+    const userId = req.user.id;
+
+    if(!userId){
+        return res.status(401).json({
+            success: false,
+            message: 'Unauthorized access - User ID not found in request.'
+        })
+    }
+
+    try{
+        const user = await db.user.findUnique({
+            where: {id : userId},
+            select: {role: true}
+        });
+
+        if(user.role !== 'ADMIN'){
+            return res.status(403).json({
+                success: false,
+                message: 'Forbidden - You do not have permission to perform this action.'
+            });
+        }
+        next(); // proceed to the next middleware or route handler.
+    } catch(error) {
+        console.log('Authorization error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error - Unable to verify user role.'
+        })
     }
 }
