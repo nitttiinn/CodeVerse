@@ -1,4 +1,5 @@
 import {db} from '../libs/db.js';
+import { getJudge0LanguageId, SubmitBatch } from '../libs/judge0.lib.js';
 
 export const createProblem = async (req, res) =>{
     // Extract All required data from the request body
@@ -34,7 +35,38 @@ export const createProblem = async (req, res) =>{
     try {
         for(const [language, solutions] of Object.entries(referenceSolutions)){
             //Get the language ID for the reference solution, from the Judge0 API
-            
+            const languageId = getJudge0LanguageId(language);
+
+            if(!languageId){
+                return res.status(400).json({
+                    success: false,
+                    message : `Bade Request - Invalid language: ${language}.`
+                });
+            };
+
+            // Prepare the submission for the Judge0 API (Array of objects for each test case)
+            const submissions = testcases.map(({input, output}) =>({
+                language_id: languageId,
+                source_code: solutions,
+                stdin: input,
+                expected_output: output
+            }));
+
+            // create a batch submission
+            const submissionResult = await SubmitBatch(submissions);
+
+            if(!submissionResult){
+                return res.status(500).json({
+                    success: false,
+                    message: 'Internal Server Error - Unable to create problem.'
+                });
+            };
+
+            const submissionsToken = submissionResult.map((res) => res.token);
+
+            // Polling
+            const result = await pollBatchResults(submissionsToken);
+
         }
         
     } catch (error) {
