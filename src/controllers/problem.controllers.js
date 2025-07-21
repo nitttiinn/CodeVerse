@@ -1,5 +1,5 @@
 import {db} from '../libs/db.js';
-import { getJudge0LanguageId, SubmitBatch } from '../libs/judge0.lib.js';
+import { getJudge0LanguageId, pollBatchResults, SubmitBatch } from '../libs/judge0.lib.js';
 
 export const createProblem = async (req, res) =>{
     // Extract All required data from the request body
@@ -9,7 +9,7 @@ export const createProblem = async (req, res) =>{
         // if not then return an error response
         return res.status(403).json({
             success: false,
-            message: 'Forbidden - You do not have permission to create a problem.'
+            error: 'Forbidden - You do not have permission to create a problem.'
         });
     };
     // validate the required fields
@@ -17,7 +17,7 @@ export const createProblem = async (req, res) =>{
         // if any of the required fields are missing then return an error response
         return res.status(400).json({
             success: false,
-            message: 'Bad Request - All fields are required to create a problem.'
+            error: 'Bad Request - All fields are required to create a problem.'
         });
     };
 
@@ -28,7 +28,7 @@ export const createProblem = async (req, res) =>{
     if(existingProblem){
         return res.status(409).json({
             success: false,
-            message: 'Conflict - A problem with this title already exists.'
+            error: 'Conflict - A problem with this title already exists.'
         });
     };
     // create the problem in the database
@@ -40,7 +40,8 @@ export const createProblem = async (req, res) =>{
             if(!languageId){
                 return res.status(400).json({
                     success: false,
-                    message : `Bade Request - Invalid language: ${language}.`
+                    // message : `Bad Request - Invalid language: ${language}.`
+                    message : `Bad Request - Invalid language: ${language}.`
                 });
             };
 
@@ -58,7 +59,7 @@ export const createProblem = async (req, res) =>{
             if(!submissionResult){
                 return res.status(500).json({
                     success: false,
-                    message: 'Internal Server Error - Unable to create problem.'
+                    Error: 'Internal Server Error - Unable to create problem.'
                 });
             };
 
@@ -67,6 +68,38 @@ export const createProblem = async (req, res) =>{
             // Polling
             const result = await pollBatchResults(submissionsToken);
 
+            for(let i = 0; i<result.length; i++){
+                const result = result[i];
+                if(result.status.id !== 3){
+                    return res.status(400).json({
+                        success: false,
+                        error: `Submission failed - Test Case ${i+1} failed.`
+                    });
+                };
+            };
+
+
+            // Save the problem to the database.
+            const newProblem = await db.problem.create({
+                data: {
+                    title: title.trim(),
+                    description: description.trim(),
+                    difficulty: difficulty.trim(),
+                    tags: tags.trim(),
+                    examples: examples.trim(),
+                    constraints: constraints.trim(),
+                    codeSnippets: JSON.stringify(codeSnippets),
+                    referenceSolutions: JSON.stringify(referenceSolutions),
+                    testcases: JSON.stringify(testcases),
+                    userId: req.user.id
+                }
+            });
+
+            return res.status(201).json({
+                success:true,
+                message: 'Problem created successfully.',
+                problem: newProblem
+            })
         }
         
     } catch (error) {
