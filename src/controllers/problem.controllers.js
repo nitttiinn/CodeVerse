@@ -41,7 +41,7 @@ export const createProblem = async (req, res) =>{
                 return res.status(400).json({
                     success: false,
                     // message : `Bad Request - Invalid language: ${language}.`
-                    message : `Bad Request - Invalid language: ${language}.`
+                    error : `Bad Request - Invalid language: ${language}.`
                 });
             };
 
@@ -106,7 +106,7 @@ export const createProblem = async (req, res) =>{
         console.error('Error creating problem:', error);
         return res.status(500).json({
             success: false,
-            message: 'Internal Server Error - Unable to create problem.'
+            Error: 'Internal Server Error - Unable to create problem.'
         });
         
     }
