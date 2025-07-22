@@ -120,8 +120,30 @@ export const createProblem = async (req, res) =>{
 };
 
 export const getAllProblems = async (req, res) =>{
+    try{
+        const problems = await db.problem.findMany(); // never return null, if no problems founds then returns a empty array
 
-};
+        if(problems.length === 0){
+            return res.status(404).json({
+                success: false,
+                error: "No problem found"
+            });
+        };
+
+        res.status(200).json({
+            success: true,
+            message: "Problems fetched successfully",
+            problems
+        })
+
+    } catch(error){
+        console.log("Error: ", error);
+        return res.status(500).json({
+            success: false, 
+            error: "Error While Fetching Problems"
+        })
+    }
+}
 
 export const getProblemById = async (req, res) =>{
 
