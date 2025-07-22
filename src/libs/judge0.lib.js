@@ -21,7 +21,7 @@ export const pollBatchResults = async(tokens) =>{
             }
         });
 
-        const results = data.submisions;
+        const results = data.submissions;
 
         const isAllDone = results.every((r) => r.status.id !== 1 && r.status.id !== 2);
 
@@ -33,8 +33,8 @@ export const pollBatchResults = async(tokens) =>{
     };
 };
 
-export const SubmitBatch = async (submisions) => {
-    const { data } = await axios.post(`${process.env.JUDGE_API_URL}/submissions/batch?base64_encoded=false`,{submisions});
+export const SubmitBatch = async (submissions) => {
+    const { data } = await axios.post(`${process.env.JUDGE_API_URL}/submissions/batch?base64_encoded=false`,{submissions});
 
     console.log("Submission result: ", data);
     return data; //  [{token}, {token}, {token}];

@@ -59,17 +59,18 @@ export const createProblem = async (req, res) =>{
             if(!submissionResult){
                 return res.status(500).json({
                     success: false,
-                    Error: 'Internal Server Error - Unable to create problem.'
+                    error: 'Internal Server Error - Unable to create problem.'
                 });
             };
 
             const submissionsToken = submissionResult.map((res) => res.token);
 
             // Polling
-            const result = await pollBatchResults(submissionsToken);
+            const results = await pollBatchResults(submissionsToken);
 
-            for(let i = 0; i<result.length; i++){
-                const result = result[i];
+            for(let i = 0; i<results.length; i++){
+                const result = results[i];
+                console.log("Result: ", result);
                 if(result.status.id !== 3){
                     return res.status(400).json({
                         success: false,
@@ -82,15 +83,15 @@ export const createProblem = async (req, res) =>{
             // Save the problem to the database.
             const newProblem = await db.problem.create({
                 data: {
-                    title: title.trim(),
-                    description: description.trim(),
-                    difficulty: difficulty.trim(),
-                    tags: tags.trim(),
-                    examples: examples.trim(),
-                    constraints: constraints.trim(),
-                    codeSnippets: JSON.stringify(codeSnippets),
-                    referenceSolutions: JSON.stringify(referenceSolutions),
-                    testcases: JSON.stringify(testcases),
+                    title,
+                    description,
+                    difficulty,
+                    tags,
+                    examples,
+                    constraints,
+                    codeSnippets,
+                    referenceSolutions,
+                    testcases,
                     userId: req.user.id
                 }
             });
@@ -106,7 +107,7 @@ export const createProblem = async (req, res) =>{
         console.error('Error creating problem:', error);
         return res.status(500).json({
             success: false,
-            Error: 'Internal Server Error - Unable to create problem.'
+            error: 'Internal Server Error - Unable to create problem.'
         });
         
     }
