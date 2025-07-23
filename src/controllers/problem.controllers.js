@@ -146,11 +146,46 @@ export const getAllProblems = async (req, res) =>{
 }
 
 export const getProblemById = async (req, res) =>{
+    const {id} = req.params;
 
+    console.log("ID: ", id);
+
+    if(!id || typeof id !== "string"){
+        return res.status(400).json({
+            success: false,
+            error: "Bad Request - Invalid problem id"
+        });
+    }
+
+    try {
+        const problem = await db.problem.findUnique({
+            where:{id}
+        });
+
+        if(!problem){
+            return res.status(404).json({
+                success: false,
+                error: "Problem not found"
+            });
+        };
+
+        res.status(200).json({
+            success: true,
+            message: "Problem Found Successfully",
+            problem
+        })
+    } catch (error) {
+        console.log("Error during fetching problem: ", error);
+        res.status(500).json({
+            success: false,
+            error: "Error While Fetching Problem"
+        });
+    };
 };
 
+// Assignment 
 export const updateProblem = async (req, res) =>{
-
+    
 };
 
 export const deleteProblem = async (req, res) =>{
