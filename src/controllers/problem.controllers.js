@@ -1,11 +1,11 @@
-import {db} from '../libs/db.js';
+import { db } from '../libs/db.js';
 import { getJudge0LanguageId, pollBatchResults, SubmitBatch } from '../libs/judge0.lib.js';
 
-export const createProblem = async (req, res) =>{
+export const createProblem = async (req, res) => {
     // Extract All required data from the request body
-    const {title, description, difficulty, tags, examples, constraints, testcases, codeSnippets, referenceSolutions} = req.body;
+    const { title, description, difficulty, tags, examples, constraints, testcases, codeSnippets, referenceSolutions } = req.body;
     // again check if the user is admin or not
-    if(req.user.role !== 'ADMIN'){
+    if (req.user.role !== 'ADMIN') {
         // if not then return an error response
         return res.status(403).json({
             success: false,
@@ -13,7 +13,7 @@ export const createProblem = async (req, res) =>{
         });
     };
     // validate the required fields
-    if(!title || !description || !difficulty || !tags || !examples || !constraints || !testcases || !codeSnippets || !referenceSolutions){
+    if (!title || !description || !difficulty || !tags || !examples || !constraints || !testcases || !codeSnippets || !referenceSolutions) {
         // if any of the required fields are missing then return an error response
         return res.status(400).json({
             success: false,
@@ -23,9 +23,9 @@ export const createProblem = async (req, res) =>{
 
     // Check if the problem already exists
     const existingProblem = await db.problem.findUnique({
-        where: {title: title.trim()}
+        where: { title: title.trim() }
     });
-    if(existingProblem){
+    if (existingProblem) {
         return res.status(409).json({
             success: false,
             error: 'Conflict - A problem with this title already exists.'
@@ -33,20 +33,20 @@ export const createProblem = async (req, res) =>{
     };
     // create the problem in the database
     try {
-        for(const [language, solutions] of Object.entries(referenceSolutions)){
+        for (const [language, solutions] of Object.entries(referenceSolutions)) {
             //Get the language ID for the reference solution, from the Judge0 API
             const languageId = getJudge0LanguageId(language);
 
-            if(!languageId){
+            if (!languageId) {
                 return res.status(400).json({
                     success: false,
                     // message : `Bad Request - Invalid language: ${language}.`
-                    error : `Bad Request - Invalid language: ${language}.`
+                    error: `Bad Request - Invalid language: ${language}.`
                 });
             };
 
             // Prepare the submission for the Judge0 API (Array of objects for each test case)
-            const submissions = testcases.map(({input, output}) =>({
+            const submissions = testcases.map(({ input, output }) => ({
                 language_id: languageId,
                 source_code: solutions,
                 stdin: input,
@@ -56,7 +56,7 @@ export const createProblem = async (req, res) =>{
             // create a batch submission
             const submissionResult = await SubmitBatch(submissions);
 
-            if(!submissionResult){
+            if (!submissionResult) {
                 return res.status(500).json({
                     success: false,
                     error: 'Internal Server Error - Unable to create problem.'
@@ -68,13 +68,13 @@ export const createProblem = async (req, res) =>{
             // Polling
             const results = await pollBatchResults(submissionsToken);
 
-            for(let i = 0; i<results.length; i++){
+            for (let i = 0; i < results.length; i++) {
                 const result = results[i];
                 console.log("Result: ", result);
-                if(result.status.id !== 3){
+                if (result.status.id !== 3) {
                     return res.status(400).json({
                         success: false,
-                        error: `Submission failed - Test Case ${i+1} failed.`
+                        error: `Submission failed - Test Case ${i + 1} failed.`
                     });
                 };
             };
@@ -97,33 +97,33 @@ export const createProblem = async (req, res) =>{
             });
 
             return res.status(201).json({
-                success:true,
+                success: true,
                 message: 'Problem created successfully.',
                 problem: newProblem
             })
         }
-        
+
     } catch (error) {
         console.error('Error creating problem:', error);
         return res.status(500).json({
             success: false,
             error: 'Internal Server Error - Unable to create problem.'
         });
-        
+
     }
     // if yes then create a problem in the database
     // loop through each reference solutions  for different languages
-        // get the language id for the reference solution or current language
-        // Prepare Judge0 submission for all the test cases.
-        // (Enhancement) - Convert Submission to chunks of 20
-        // submit all the test cases in one Batch
+    // get the language id for the reference solution or current language
+    // Prepare Judge0 submission for all the test cases.
+    // (Enhancement) - Convert Submission to chunks of 20
+    // submit all the test cases in one Batch
 };
 
-export const getAllProblems = async (req, res) =>{
-    try{
+export const getAllProblems = async (req, res) => {
+    try {
         const problems = await db.problem.findMany(); // never return null, if no problems founds then returns a empty array
 
-        if(problems.length === 0){
+        if (problems.length === 0) {
             return res.status(404).json({
                 success: false,
                 error: "No problem found"
@@ -136,21 +136,21 @@ export const getAllProblems = async (req, res) =>{
             problems
         })
 
-    } catch(error){
+    } catch (error) {
         console.log("Error: ", error);
         return res.status(500).json({
-            success: false, 
+            success: false,
             error: "Error While Fetching Problems"
         })
     }
 }
 
-export const getProblemById = async (req, res) =>{
-    const {id} = req.params;
+export const getProblemById = async (req, res) => {
+    const { id } = req.params;
 
     console.log("ID: ", id);
 
-    if(!id || typeof id !== "string"){
+    if (!id || typeof id !== "string") {
         return res.status(400).json({
             success: false,
             error: "Bad Request - Invalid problem id"
@@ -159,10 +159,10 @@ export const getProblemById = async (req, res) =>{
 
     try {
         const problem = await db.problem.findUnique({
-            where:{id}
+            where: { id }
         });
 
-        if(!problem){
+        if (!problem) {
             return res.status(404).json({
                 success: false,
                 error: "Problem not found"
@@ -184,12 +184,66 @@ export const getProblemById = async (req, res) =>{
 };
 
 // Assignment 
-export const updateProblem = async (req, res) =>{
-    
+export const updateProblem = async (req, res) => {
+    // Fetch data required to update the problem from the request body just like we did in create problem
+    // run the update query using the problem id and update the problem
+    const { id } = req.params;
+
+    const problem = await db.problem.findUnique({
+        where: { id }
+    });
+
+    if (!problem) {
+        return res.status(404).json({
+            success: false,
+            error: "Problem not found"
+        });
+    };
+
+    const updateProblem = await db.problem.update({
+        where: { id },
+        // updating the required fields
+
+    });
 };
 
-export const deleteProblem = async (req, res) =>{
+export const deleteProblem = async (req, res) => {
+    const { id } = req.params;
 
+    if(!id){
+        return res.status(400).json({
+            success: false,
+            error: "Bad request - Invalid problem id"
+        });
+    };
+
+    try {
+        const problem = await db.problem.findUnique({
+            where: { id }
+        });
+
+        if (!problem) {
+            return res.status(404).json({
+                success: false,
+                error: "Problem not found"
+            });
+        };
+
+        await db.problem.delete({
+            where: {id}
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Problem deleted successfully"
+        })
+    } catch (error) {
+        console.log("Error while deleting problem: ", error);
+        return res.status(500).json({
+            success: false,
+            error: "Error while deleting problem"
+        })
+    }
 };
 
-export const getAllProblemsSolvedByUser = async (req, res) =>{};
+export const getAllProblemsSolvedByUser = async (req, res) => { };
